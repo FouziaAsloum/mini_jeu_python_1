@@ -1,67 +1,92 @@
-# === Mini jeu d'aventure ===
+# === Mini Adventure Game ===
 
-def afficher_menu():
-    print("\n=== MENU PRINCIPAL ===")
-    print("1. Explorer")
-    print("2. Voir le personnage")
-    print("3. Quitter")
-
+# ===== PLAYER CLASS =====
 class Player:
-    def __init__(self, nom):
-        self.nom = nom
-        self.vie = 100
-        self.attaque = 10
+  def __init__(self, name):
+    self.name = name
+    self.health = 100
+    self.attack = 15
+    self.defense = 5
+    self.gold = 0
 
-    def afficher_stats(self):
-        print("=== STATS DU PERSONNAGE ===")
-        print("Nom :", self.nom)
-        print("Vie :", self.vie)
-        print("Attaque :", self.attaque)
-        
-    def attaquer(self, ennemi):
-      print(self.nom, "attaque", ennemi.nom, "!")
-      ennemi.vie -= self.attaque
-      print(ennemi.nom, "perd", self.attaque, "points de vie.")
+  def show_stats(self):
+    print("\n===== PLAYER STATS =====")
+    print(f"Name: {self.name}")
+    print(f"Health: {self.health}")
+    print(f"Attack: {self.attack}")
+    print(f"Defense: {self.defense}")
+    print(f"Gold: {self.gold}")
+    print("========================\n")
 
-        
+  def attack_enemy(self, enemy):
+    damage = self.attack - enemy.defense
+    if damage < 0:
+        damage = 0
+    enemy.health -= damage
+    print(f"{self.name} attacks {enemy.name}!")
+    print(f"{enemy.name} loses {damage} health points.")
+
+
+# ===== ENEMY CLASS =====
 class Enemy:
-    def __init__(self, nom, vie, attaque):
-        self.nom = nom
-        self.vie = vie
-        self.attaque = attaque
+  def __init__(self, name, health, attack, defense):
+    self.name = name
+    self.health = health
+    self.attack = attack
+    self.defense = defense
 
-    def afficher_stats(self):
-        print("=== ENNEMI ===")
-        print("Nom :", self.nom)
-        print("Vie :", self.vie)
-        print("Attaque :", self.attaque)
+  def show_stats(self):
+    print("\n===== ENEMY =====")
+    print(f"Name: {self.name}")
+    print(f"Health: {self.health}")
+    print(f"Attack: {self.attack}")
+    print(f"Defense: {self.defense}")
+    print("=================\n")
 
 
+# ===== MENU =====
+def show_menu():
+  print("\n=== MAIN MENU ===")
+  print("1. Explore")
+  print("2. Show Player Stats")
+  print("3. Quit")
+
+
+# ===== MAIN FUNCTION =====
 def main():
-    print("Bienvenue dans le jeu 🗡️")
-    nom_joueur = input("Choisis ton nom : ")
-    joueur = Player(nom_joueur)
+  print("Welcome to the Adventure Game 🗡️")
 
+  player_name = input("Choose your name: ")
+  player = Player(player_name)
 
-    while True:
-        afficher_menu()
-        choix = input("Que veux-tu faire ? ")
+  while True:
+    show_menu()
+    choice = input("What do you want to do? ")
 
-        if choix == "1":
-            print("Tu pars explorer...")
-            ennemi = Enemy("Gobelin", 50, 5)
-            ennemi.afficher_stats()
-    
-            joueur.attaquer(ennemi)
-            print("Vie restante de l'ennemi :", ennemi.vie)
+    if choice == "1":
+      print("\nYou go exploring...")
+      enemy = Enemy("Goblin", 50, 8, 2)
+      enemy.show_stats()
 
+      player.attack_enemy(enemy)
 
-        elif choix == "2":
-          joueur.afficher_stats()
-        elif choix == "3":
-            print("À bientôt 👋")
-            break
-        else:
-            print("Choix invalide.")
+      if enemy.health <= 0:
+        print("The goblin has been defeated!")
+        player.gold += 10
+        print("You gained 10 gold!")
+      else:
+        print(f"Enemy remaining health: {enemy.health}")
 
-main()
+    elif choice == "2":
+      player.show_stats()
+
+    elif choice == "3":
+      print("Goodbye 👋")
+      break
+
+    else:
+      print("Invalid choice.")
+
+if __name__ == "__main__":
+  main()
+
