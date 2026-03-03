@@ -1,4 +1,5 @@
 import random
+import json
 
 # ===== PLAYER CLASS =====
 class Player:
@@ -31,8 +32,8 @@ class Player:
     self.health -= damage
     self.health = max(0, self.health)
 
-# ----- ATTACK ENEMY -----
 
+# ----- ATTACK ENEMY -----
   def attack_enemy(self, enemy):
     crit = random.random() < 0.2  # 20% chance critique
     base_damage = random.randint(self.attack - 3, self.attack + 3)
@@ -47,6 +48,8 @@ class Player:
     
     print(f"{self.name} attacks {enemy.name} for {damage} damage!")
 
+
+# ----- USE POTION -----
   def use_potion(self):
     if self.potions > 0:
       heal = 30
@@ -186,6 +189,57 @@ def shop(player):
 
     else:
       print("Invalid choice.")
+      
+      
+# ===== SAVE GAME PLAYER =====     
+def save_game(player):
+  data = {
+    "name": player.name,
+    "level": player.level,
+    "xp": player.xp,
+    "health": player.health,
+    "max_health": player.max_health,
+    "attack": player.attack,
+    "defense": player.defense,
+    "gold": player.gold,
+    "potions": player.potions
+    }
+
+  with open("save.json", "w") as file:
+    json.dump(data, file, indent=4)
+
+  print("💾 Game saved successfully!")
+  
+  
+# ===== LOAD GAME ===== 
+def load_game():
+  try:
+    with open("save.json", "r") as file:
+      data = json.load(file)
+
+      player = Player(data["name"])
+      player.level = data["level"]
+      player.xp = data["xp"]
+      player.health = data["health"]
+      player.max_health = data["max_health"]
+      player.attack = data["attack"]
+      player.defense = data["defense"]
+      player.gold = data["gold"]
+      player.potions = data["potions"]
+
+      print("✅ Game loaded successfully!")
+      return player
+
+  except FileNotFoundError:
+    print("⚠️ No save file found.")
+    return None
+  
+  except json.JSONDecodeError:
+    print("⚠️ Save file corrupted.")
+    return None
+
+
+
 
 
 
@@ -195,15 +249,32 @@ def show_menu():
   print("1. Explore")
   print("2. Show Player Stats")
   print("3. Shop")
-  print("4. Quit")
+  print("4. Save Game")
+  print("5. Load Game")
+  print("6. Quit")
+
+
+
 
 
 # ===== MAIN FUNCTION =====
 def main():
   print("Welcome to the Ultimate Adventure Game 🗡️")
 
-  player_name = input("Choose your name: ")
-  player = Player(player_name)
+  player = None
+
+  while player is None:
+    print("1. New Game")
+    print("2. Load Game")
+    start_choice = input("Choose an option: ")
+
+    if start_choice == "1":
+      player_name = input("Choose your name: ")
+      player = Player(player_name)
+    elif start_choice == "2":
+      player = load_game()
+    else:
+      print("Invalid choice.")
 
   while True:
     if player.health <= 0:
@@ -224,14 +295,22 @@ def main():
 
     elif choice == "3":
       shop(player)
-    
+
     elif choice == "4":
+      save_game(player)
+
+    elif choice == "5":
+      loaded = load_game()
+      if loaded:
+          player = loaded
+
+    elif choice == "6":
       print("Goodbye 👋")
       break
 
-
     else:
       print("Invalid choice.")
+
 
 
 if __name__ == "__main__":
