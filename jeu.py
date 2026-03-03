@@ -146,12 +146,56 @@ def combat(player, enemy):
   return True
 
 
+# ===== SHOP =====
+def shop(player):
+  while True:
+    print("\n🏪 Welcome to the Shop!")
+    print("1. Buy Potion (20 gold)")
+    print("2. Increase Attack (+3) (50 gold)")
+    print("3. Increase Defense (+2) (50 gold)")
+    print("4. Exit Shop")
+
+    choice = input("What do you want to buy? ")
+
+    if choice == "1":
+      if player.gold >= 20:
+        player.gold -= 20
+        player.potions += 1
+        print("You bought a potion! 🧪")
+      else:
+        print("Not enough gold!")
+
+    elif choice == "2":
+      if player.gold >= 50:
+        player.gold -= 50
+        player.attack += 3
+        print("Attack increased! 🗡️")
+      else:
+        print("Not enough gold!")
+
+    elif choice == "3":
+      if player.gold >= 50:
+        player.gold -= 50
+        player.defense += 2
+        print("Defense increased! 🛡️")
+      else:
+        print("Not enough gold!")
+
+    elif choice == "4":
+      break
+
+    else:
+      print("Invalid choice.")
+
+
+
 # ===== MENU =====
 def show_menu():
   print("\n=== MAIN MENU ===")
   print("1. Explore")
   print("2. Show Player Stats")
-  print("3. Quit")
+  print("3. Shop")
+  print("4. Quit")
 
 
 # ===== MAIN FUNCTION =====
@@ -179,8 +223,12 @@ def main():
       player.show_stats()
 
     elif choice == "3":
+      shop(player)
+    
+    elif choice == "4":
       print("Goodbye 👋")
       break
+
 
     else:
       print("Invalid choice.")
