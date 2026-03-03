@@ -107,13 +107,37 @@ class Enemy:
 
 
 # ===== ENEMY GENERATOR =====
-def generate_enemy():
-  enemies = [
-    Enemy("Goblin", 50, 8, 2, 40, 10),
-    Enemy("Orc", 80, 12, 4, 60, 20),
-    Enemy("Skeleton", 60, 10, 3, 50, 15)
-  ]
-  return random.choice(enemies)
+def generate_enemy(player):
+  level = player.level
+
+  enemy_types = [
+    {"name": "Goblin 👹", "base_health": 50, "base_attack": 8, "base_defense": 2},
+    {"name": "Orc 💪", "base_health": 80, "base_attack": 12, "base_defense": 4},
+    {"name": "Skeleton 💀", "base_health": 60, "base_attack": 10, "base_defense": 3}
+    ]
+
+  enemy_choice = random.choice(enemy_types)
+
+  health = enemy_choice["base_health"] + level * 10
+  attack = enemy_choice["base_attack"] + level * 2
+  defense = enemy_choice["base_defense"] + level
+  xp_reward = 30 + level * 10
+  gold_reward = 15 + level * 5
+
+  return Enemy(
+    enemy_choice["name"],
+    health,
+    attack,
+    defense,
+    xp_reward,
+    gold_reward
+)
+
+
+# ===== BOSS GENERATOR =====
+def generate_boss():
+  return Enemy("Dragon 🐉", 200, 20, 8, 150, 100)
+
 
 
 # ===== COMBAT SYSTEM =====
@@ -285,7 +309,11 @@ def main():
     choice = input("What do you want to do? ")
 
     if choice == "1":
-      enemy = generate_enemy()
+      if random.random() < 0.2:   # 20% chance
+        enemy = generate_boss(player)
+      else:
+        enemy = generate_enemy(player)
+        
       alive = combat(player, enemy)
       if not alive:
         break
