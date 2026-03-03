@@ -13,6 +13,14 @@ class Player:
     self.level = 1
     self.xp = 0
     self.potions = 2
+    
+    self.weapon = {
+    "name": "Épée rouillée 🗡️",
+    "attack_bonus": 2
+    }
+    
+    self.zone = "Forêt 🌲"
+
 
   def show_stats(self):
     print("\n===== PLAYER STATS =====")
@@ -36,7 +44,8 @@ class Player:
 # ----- ATTACK ENEMY -----
   def attack_enemy(self, enemy):
     crit = random.random() < 0.2  # 20% chance critique
-    base_damage = random.randint(self.attack - 3, self.attack + 3)
+    total_attack = self.attack + self.weapon["attack_bonus"]
+    base_damage = random.randint(total_attack - 3, total_attack + 3)
     damage = base_damage - enemy.defense
 
     if crit:
@@ -109,6 +118,7 @@ class Enemy:
 # ===== ENEMY GENERATOR =====
 def generate_enemy(player):
   level = player.level
+  zone = player.zone  # ✅ On récupère la zone actuelle
 
   enemy_types = [
     {"name": "Goblin 👹", "base_health": 50, "base_attack": 8, "base_defense": 2},
@@ -118,11 +128,21 @@ def generate_enemy(player):
 
   enemy_choice = random.choice(enemy_types)
 
-  health = enemy_choice["base_health"] + level * 10
-  attack = enemy_choice["base_attack"] + level * 2
-  defense = enemy_choice["base_defense"] + level
-  xp_reward = 30 + level * 10
-  gold_reward = 15 + level * 5
+# ✅ Multiplicateur selon la zone
+  if zone == "Forêt 🌲":
+    multiplier = 1
+  elif zone == "Donjon 🏰":
+    multiplier = 1.5
+  else:
+    multiplier = 2
+
+# ✅ Calcul des stats avec scaling zone + level
+  health = int((enemy_choice["base_health"] + level * 10) * multiplier)
+  attack = int((enemy_choice["base_attack"] + level * 2) * multiplier)
+  defense = int((enemy_choice["base_defense"] + level) * multiplier)
+
+  xp_reward = int((30 + level * 10) * multiplier)
+  gold_reward = int((15 + level * 5) * multiplier)
 
   return Enemy(
     enemy_choice["name"],
@@ -131,7 +151,10 @@ def generate_enemy(player):
     defense,
     xp_reward,
     gold_reward
-)
+  )
+
+  
+
 
 
 # ===== BOSS GENERATOR =====
@@ -171,6 +194,25 @@ def combat(player, enemy):
     return False
 
   return True
+
+
+# ===== CHANGE ZONE  =====
+def change_zone(player):
+  zones = {
+    "1": "Forêt 🌲",
+    "2": "Donjon 🏰",
+    "3": "Montagne ⛰️"
+  }
+
+  print("\n🗺️ Choisis une zone :")
+  for key, value in zones.items():
+    print(f"{key}. {value}")
+
+  choice = input("Zone : ")
+
+  if choice in zones:
+    player.zone = zones[choice]
+    print(f"\n✅ Tu es maintenant dans : {player.zone}")
 
 
 # ===== SHOP =====
@@ -214,7 +256,42 @@ def shop(player):
     else:
       print("Invalid choice.")
       
-      
+  
+# ===== WEAPON SHOP =====     
+def weapon_shop(player):
+  weapons = [
+    {"name": "Épée en fer ⚔️", "attack_bonus": 5, "price": 50},
+    {"name": "Grande hache 🪓", "attack_bonus": 8, "price": 100},
+    {"name": "Lame légendaire 🔥", "attack_bonus": 15, "price": 250}
+  ]
+
+  print("\n🛒 Boutique d'armes :")
+  for i, weapon in enumerate(weapons):
+    print(f"{i+1}. {weapon['name']} (+{weapon['attack_bonus']} ATK) - {weapon['price']} or")
+
+  choice = input("Choisis une arme (ou 0 pour quitter) : ")
+
+  if choice.isdigit():
+    choice = int(choice)
+
+    if choice == 0:
+      return
+
+    if 1 <= choice <= len(weapons):
+      selected = weapons[choice - 1]
+
+      if player.gold >= selected["price"]:
+          player.gold -= selected["price"]
+          player.weapon = {
+            "name": selected["name"],
+            "attack_bonus": selected["attack_bonus"]
+           }
+          print(f"\n✅ Tu as équipé {selected['name']} !")
+      else:
+          print("❌ Pas assez d'or.")
+
+
+
 # ===== SAVE GAME PLAYER =====     
 def save_game(player):
   data = {
@@ -226,7 +303,9 @@ def save_game(player):
     "attack": player.attack,
     "defense": player.defense,
     "gold": player.gold,
-    "potions": player.potions
+    "potions": player.potions,
+    "zone": player.zone,
+    "weapon": player.weapon
     }
 
   with open("save.json", "w") as file:
@@ -250,6 +329,9 @@ def load_game():
       player.defense = data["defense"]
       player.gold = data["gold"]
       player.potions = data["potions"]
+      player.zone = data["zone"]
+      player.weapon = data["weapon"]
+
 
       print("✅ Game loaded successfully!")
       return player
@@ -272,10 +354,12 @@ def show_menu():
   print("\n=== MAIN MENU ===")
   print("1. Explore")
   print("2. Show Player Stats")
-  print("3. Shop")
-  print("4. Save Game")
-  print("5. Load Game")
-  print("6. Quit")
+  print("3. Changer de zone")
+  print("4. Shop")
+  print("5. Boutique d'armes")
+  print("6. Save Game")
+  print("7. Load Game")
+  print("8. Quit")
 
 
 
@@ -310,7 +394,7 @@ def main():
 
     if choice == "1":
       if random.random() < 0.2:   # 20% chance
-        enemy = generate_boss(player)
+        enemy = generate_boss()
       else:
         enemy = generate_enemy(player)
         
@@ -320,19 +404,25 @@ def main():
 
     elif choice == "2":
       player.show_stats()
-
+      
     elif choice == "3":
-      shop(player)
+      change_zone(player)
 
     elif choice == "4":
-      save_game(player)
-
+      shop(player)
+      
     elif choice == "5":
-      loaded = load_game()
-      if loaded:
-          player = loaded
+      weapon_shop(player)
 
     elif choice == "6":
+      save_game(player)
+
+    elif choice == "7":
+      loaded = load_game()
+      if loaded:
+        player = loaded
+
+    elif choice == "8":
       print("Goodbye 👋")
       break
 
