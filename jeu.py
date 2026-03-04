@@ -1,539 +1,539 @@
 import random
 import json
 
-# ===== PLAYER CLASS =====
-class Player:
-  def __init__(self, name, player_class):
-    self.name = name
-    self.player_class = player_class
+# ===== CLASSE JOUEUR =====
+class Joueur:
+  def __init__(self, nom, classe):
+    self.nom = nom
+    self.classe = classe
 
     # Stats de base
-    self.level = 1
+    self.niveau = 1
     self.xp = 0
-    self.gold = 0
+    self.or_ = 0
     self.potions = 2
 
     # Stats selon la classe
-    if player_class == "Guerrier":
-      self.max_health = 120
-      self.attack = 18
-      self.defense = 8
-      self.mana = 0
+    if classe == "Guerrier":
+        self.sante_max = 120
+        self.attaque = 18
+        self.defense = 8
+        self.mana = 0
 
-    elif player_class == "Mage":
-      self.max_health = 80
-      self.attack = 10
-      self.defense = 3
-      self.mana = 50
+    elif classe == "Mage":
+        self.sante_max = 80
+        self.attaque = 10
+        self.defense = 3
+        self.mana = 50
 
-    elif player_class == "Assassin":
-      self.max_health = 90
-      self.attack = 15
-      self.defense = 4
-      self.mana = 20
+    elif classe == "Assassin":
+        self.sante_max = 90
+        self.attaque = 15
+        self.defense = 4
+        self.mana = 20
 
-    self.health = self.max_health
-    
-    self.weapon = {
-    "name": "Épée rouillée 🗡️",
-    "attack_bonus": 2
-    }
-    
+    self.sante = self.sante_max
+
+    self.arme = {
+        "nom": "Épée rouillée 🗡️",
+        "bonus_attaque": 2
+      }
+
     self.zone = "Forêt 🌲"
 
-
-  def show_stats(self):
-    print("\n===== PLAYER STATS =====")
-    print(f"Name: {self.name}")
-    print(f"Class: {self.player_class}")
-    print(f"Level: {self.level}")
-    print(f"XP: {self.xp}/100")
-    print(f"Health: {self.health}/{self.max_health}")
-    print(f"Attack: {self.attack}")
-    print(f"Defense: {self.defense}")
-    print(f"Gold: {self.gold}")
-    print(f"Potions: {self.potions}")
+  # ----- AFFICHER LES STATS -----
+  def afficher_stats(self):
+    print("\n===== STATISTIQUES =====")
+    print(f"Nom       : {self.nom}")
+    print(f"Classe    : {self.classe}")
+    print(f"Niveau    : {self.niveau}")
+    print(f"XP        : {self.xp}/100")
+    print(f"Santé     : {self.sante}/{self.sante_max}")
+    print(f"Attaque   : {self.attaque}")
+    print(f"Défense   : {self.defense}")
+    print(f"Or        : {self.or_}")
+    print(f"Potions   : {self.potions}")
+    print(f"Arme      : {self.arme['nom']} (+{self.arme['bonus_attaque']} ATK)")
+    print(f"Zone      : {self.zone}")
     if self.mana > 0:
-     print(f"Mana: {self.mana}")
+        print(f"Mana      : {self.mana}")
     print("========================\n")
 
+  # ----- SUBIR DES DÉGÂTS -----
+  def subir_degats(self, degats):
+    self.sante -= degats
+    self.sante = max(0, self.sante)
 
-# ----- TAKE DAMAGE -----
-  def take_damage(self, damage):
-    self.health -= damage
-    self.health = max(0, self.health)
+  # ----- ATTAQUER UN ENNEMI -----
+  def attaquer_ennemi(self, ennemi):
+    critique = random.random() < 0.2  # 20% de chance de coup critique
+    attaque_totale = self.attaque + self.arme["bonus_attaque"]
+    degats_base = random.randint(attaque_totale - 3, attaque_totale + 3)
+    degats = degats_base - ennemi.defense
 
+    if critique:
+      degats *= 2
+      print("💥 COUP CRITIQUE !")
 
-# ----- ATTACK ENEMY -----
-  def attack_enemy(self, enemy):
-    crit = random.random() < 0.2  # 20% chance critique
-    total_attack = self.attack + self.weapon["attack_bonus"]
-    base_damage = random.randint(total_attack - 3, total_attack + 3)
-    damage = base_damage - enemy.defense
+    degats = max(0, degats)
+    ennemi.subir_degats(degats)
+    print(f"{self.nom} attaque {ennemi.nom} pour {degats} dégâts !")
 
-    if crit:
-        damage *= 2
-        print("💥 CRITICAL HIT!")
+  # ----- CAPACITÉ SPÉCIALE -----
+  def capacite_speciale(self, ennemi):
+    print("\n✨ CAPACITÉ SPÉCIALE ✨")
 
-    damage = max(0, damage)
-    enemy.take_damage(damage)
-    
-    print(f"{self.name} attacks {enemy.name} for {damage} damage!")
-    
-    
-# ----- SPECIAL ABILITY -----
-  def special_ability(self, enemy):
-    print("\n✨ SPECIAL ABILITY ✨")
+      # ===== GUERRIER =====
+    if self.classe == "Guerrier":
+      degats = (self.attaque + self.arme["bonus_attaque"]) * 2
+      degats -= ennemi.defense
+      degats = max(0, degats)
 
-    # ===== warrior =====
-    if self.player_class == "Guerrier":
-      damage = (self.attack + self.weapon["attack_bonus"]) * 2
-      damage -= enemy.defense
-      damage = max(0, damage)
-
-      enemy.take_damage(damage)
-      print(f"💥 Coup Puissant ! {damage} damage dealt!")
+      ennemi.subir_degats(degats)
+      print(f"💥 Coup Puissant ! {degats} dégâts infligés !")
 
       if random.random() < 0.25:
         print("⚡ L'ennemi est étourdi !")
-        return "stun"
+        return "etourdissement"
 
-    # ===== wizard =====
-    elif self.player_class == "Mage":
-      if self.mana >= 20:
-        self.mana -= 20
-        damage = random.randint(25, 35)
-        enemy.take_damage(damage)
-        print(f"🔥 Boule de Feu ! {damage} damage dealt!")
-      else:
-        print("❌ Pas assez de mana !")
+      # ===== MAGE =====
+      elif self.classe == "Mage":
+        if self.mana >= 20:
+          self.mana -= 20
+          degats = random.randint(25, 35)
+          ennemi.subir_degats(degats)
+          print(f"🔥 Boule de Feu ! {degats} dégâts infligés !")
+        else:
+          print("❌ Pas assez de mana !")
 
-    # ===== murderer =====
-    elif self.player_class == "Assassin":
-      damage = (self.attack + self.weapon["attack_bonus"]) * 2
-      enemy.take_damage(damage)
-      print(f"🗡 Attaque Furtive ! {damage} damage dealt!")
+      # ===== ASSASSIN =====
+      elif self.classe == "Assassin":
+        degats = (self.attaque + self.arme["bonus_attaque"]) * 2
+        ennemi.subir_degats(degats)
+        print(f"🗡️ Attaque Furtive ! {degats} dégâts infligés !")
 
       if random.random() < 0.3:
-        print("💨 Vous évitez la prochaine attaque !")
-        return "dodge"
+        print("💨 Vous éviterez la prochaine attaque !")
+        return "esquive"
 
     return None
- 
 
-
-# ----- USE POTION -----
-  def use_potion(self):
+  # ----- UTILISER UNE POTION -----
+  def utiliser_potion(self):
     if self.potions > 0:
-      heal = 30
-      before = self.health
-      self.health = min(self.max_health, self.health + heal)
-      actual_heal = self.health - before
+      soin = 30
+      avant = self.sante
+      self.sante = min(self.sante_max, self.sante + soin)
+      soin_reel = self.sante - avant
       self.potions -= 1
-      print(f"{self.name} drinks a potion and heals {actual_heal} HP!")
-    
+      print(f"{self.nom} boit une potion et récupère {soin_reel} points de santé !")
     else:
-      print("No potions left!")
+      print("❌ Plus aucune potion !")
 
-  def gain_xp(self, amount):
-    self.xp += amount
-    print(f"You gained {amount} XP!")
+  # ----- GAGNER DE L'XP -----
+  def gagner_xp(self, montant):
+    self.xp += montant
+    print(f"Vous gagnez {montant} XP !")
 
     while self.xp >= 100:
       self.xp -= 100
-      self.level_up()
+      self.monter_niveau()
 
-  def level_up(self):
-    self.level += 1
-    self.max_health += 20
-    self.attack += 5
+  # ----- MONTER DE NIVEAU -----
+  def monter_niveau(self):
+    self.niveau += 1
+    self.sante_max += 20
+    self.attaque += 5
     self.defense += 2
-    self.health = self.max_health
-    print("🎉 LEVEL UP!")
-    print(f"You are now level {self.level}!")
+    self.sante = self.sante_max
+    print("🎉 NIVEAU SUPÉRIEUR !")
+    print(f"Vous êtes maintenant niveau {self.niveau} !")
 
 
 # ==============================
-#            ENEMY
+#            ENNEMI
 # ==============================
 
-class Enemy:
-  def __init__(self, name, health, attack, defense, xp_reward, gold_reward):
-    self.name = name
-    self.health = health
-    self.attack = attack
+class Ennemi:
+  def __init__(self, nom, sante, attaque, defense, recompense_xp, recompense_or):
+    self.nom = nom
+    self.sante = sante
+    self.attaque = attaque
     self.defense = defense
-    self.xp_reward = xp_reward
-    self.gold_reward = gold_reward
-    
-  def take_damage(self, damage):
-    self.health -= damage
-    self.health = max(0, self.health)
+    self.recompense_xp = recompense_xp
+    self.recompense_or = recompense_or
 
-  def attack_player(self, player):
-    base_damage = random.randint(self.attack - 2, self.attack + 2)
-    damage = base_damage - player.defense
-    damage = max(0, damage)
-    
-    player.take_damage(damage)
-    print(f"{self.name} attacks {player.name} for {damage} damage!")
+  # ----- SUBIR DES DÉGÂTS -----
+  def subir_degats(self, degats):
+    self.sante -= degats
+    self.sante = max(0, self.sante)
+
+  # ----- ATTAQUER LE JOUEUR -----
+  def attaquer_joueur(self, joueur):
+    degats_base = random.randint(self.attaque - 2, self.attaque + 2)
+    degats = degats_base - joueur.defense
+    degats = max(0, degats)
+
+    joueur.subir_degats(degats)
+    print(f"{self.nom} attaque {joueur.nom} pour {degats} dégâts !")
 
 
-# ===== ENEMY GENERATOR =====
-def generate_enemy(player):
-  level = player.level
-  zone = player.zone  # ✅ On récupère la zone actuelle
+# ===== GÉNÉRATEUR D'ENNEMIS =====
+def generer_ennemi(joueur):
+  niveau = joueur.niveau
+  zone = joueur.zone
 
-  enemy_types = [
-    {"name": "Goblin 👹", "base_health": 50, "base_attack": 8, "base_defense": 2},
-    {"name": "Orc 💪", "base_health": 80, "base_attack": 12, "base_defense": 4},
-    {"name": "Skeleton 💀", "base_health": 60, "base_attack": 10, "base_defense": 3}
-    ]
+  types_ennemis = [
+    {"nom": "Gobelin 👹", "sante_base": 50, "attaque_base": 8, "defense_base": 2},
+    {"nom": "Orc 💪",     "sante_base": 80, "attaque_base": 12, "defense_base": 4},
+    {"nom": "Squelette 💀","sante_base": 60, "attaque_base": 10, "defense_base": 3}
+  ]
 
-  enemy_choice = random.choice(enemy_types)
+  choix = random.choice(types_ennemis)
 
-# ✅ Multiplicateur selon la zone
+  # Multiplicateur selon la zone
   if zone == "Forêt 🌲":
-    multiplier = 1
+    multiplicateur = 1
   elif zone == "Donjon 🏰":
-    multiplier = 1.5
+    multiplicateur = 1.5
   else:
-    multiplier = 2
+    multiplicateur = 2
 
-# ✅ Calcul des stats avec scaling zone + level
-  health = int((enemy_choice["base_health"] + level * 10) * multiplier)
-  attack = int((enemy_choice["base_attack"] + level * 2) * multiplier)
-  defense = int((enemy_choice["base_defense"] + level) * multiplier)
+  # Calcul des stats avec scaling zone + niveau
+  sante   = int((choix["sante_base"]   + niveau * 10) * multiplicateur)
+  attaque = int((choix["attaque_base"] + niveau * 2)  * multiplicateur)
+  defense = int((choix["defense_base"] + niveau)      * multiplicateur)
 
-  xp_reward = int((30 + level * 10) * multiplier)
-  gold_reward = int((15 + level * 5) * multiplier)
+  recompense_xp = int((30 + niveau * 10) * multiplicateur)
+  recompense_or = int((15 + niveau * 5)  * multiplicateur)
 
-  return Enemy(
-    enemy_choice["name"],
-    health,
-    attack,
-    defense,
-    xp_reward,
-    gold_reward
-  )
-
-  
-  
-# ===== BOSS GENERATOR =====
-def generate_boss():
-  return Enemy("Dragon 🐉", 200, 20, 8, 150, 100)
+  return Ennemi(choix["nom"], sante, attaque, defense, recompense_xp, recompense_or)
 
 
-# ===== COMBAT SYSTEM =====
-def combat(player, enemy):
-  print(f"\n⚔️ A wild {enemy.name} appears!")
+# ===== GÉNÉRATEUR DE BOSS =====
+def generer_boss():
+  return Ennemi("Dragon 🐉", 200, 20, 8, 150, 100)
 
-  dodge_next = False  # Pour l'assassin
 
-  while enemy.health > 0 and player.health > 0:
-    print(f"\n{player.name}: {player.health} HP")
-    print(f"{enemy.name}: {enemy.health} HP")
+# ===== SYSTÈME DE COMBAT =====
+def combat(joueur, ennemi):
+  print(f"\n⚔️ Un {ennemi.nom} apparaît !")
 
-    print("1. Attack")
-    print("2. Use Potion")
-    print("3. Special Ability")
+  esquive_prochaine = False
 
-    action = input("Choose action: ")
+  while ennemi.sante > 0 and joueur.sante > 0:
+
+  # ... affichage stats ...
+
+    action = input("Choisissez une action : ")
+
+    etourdissement = False
 
     if action == "1":
-      player.attack_enemy(enemy)
+      joueur.attaquer_ennemi(ennemi)
 
     elif action == "2":
-      player.use_potion()
+      joueur.utiliser_potion()
 
     elif action == "3":
-      effect = player.special_ability(enemy)
+      effet = joueur.capacite_speciale(ennemi)
 
-      if effect == "stun":
-        continue  # L’ennemi ne joue pas
+    if effet == "etourdissement":
+      etourdissement = True  # ✅ on stocke dans une variable
 
-      if effect == "dodge":
-        dodge_next = True
+    elif effet == "esquive":
+      esquive_prochaine = True
 
     else:
-      print("Invalid action.")
-      continue
+      print("❌ Action invalide.")
+    continue
 
-    # ----- TOUR ENNEMI -----
-    if enemy.health > 0:
+  # ----- TOUR DE L'ENNEMI -----
+  if ennemi.sante > 0:
+    if etourdissement:  # ✅ on vérifie ici, hors du elif
+      print("⚡ L'ennemi est étourdi et ne peut pas attaquer !")
+    elif esquive_prochaine:
+      print("💨 Vous esquivez l'attaque ennemie !")
+      esquive_prochaine = False
+    else:
+      ennemi.attaquer_joueur(joueur)
 
-      if dodge_next:
-        print("💨 Vous esquivez l'attaque ennemie !")
-        dodge_next = False
-      else:
-        enemy.attack_player(player)
+
+      # ----- TOUR DE L'ENNEMI -----
+  if ennemi.sante > 0:
+    if esquive_prochaine:
+      print("💨 Vous esquivez l'attaque ennemie !")
+      esquive_prochaine = False
+  else:
+    ennemi.attaquer_joueur(joueur)
 
   # ----- FIN DU COMBAT -----
-  if player.health > 0:
-    print(f"\n✅ {enemy.name} defeated!")
-    player.gold += enemy.gold_reward
-    player.gain_xp(enemy.xp_reward)
-    print(f"You gained {enemy.gold_reward} gold!")
+  if joueur.sante > 0:
+    print(f"\n✅ {ennemi.nom} vaincu !")
+    joueur.or_ += ennemi.recompense_or
+    joueur.gagner_xp(ennemi.recompense_xp)
+    print(f"Vous gagnez {ennemi.recompense_or} pièces d'or !")
   else:
-    print("\n💀 You were defeated...")
+    print("\n💀 Vous avez été vaincu...")
     return False
 
   return True
 
 
-# ===== CHANGE ZONE  =====
-def change_zone(player):
+# ===== CHANGER DE ZONE =====
+def changer_zone(joueur):
   zones = {
     "1": "Forêt 🌲",
     "2": "Donjon 🏰",
     "3": "Montagne ⛰️"
   }
 
-  print("\n🗺️ Choisis une zone :")
-  for key, value in zones.items():
-    print(f"{key}. {value}")
+  print("\n🗺️ Choisissez une zone :")
+  for cle, valeur in zones.items():
+    print(f"{cle}. {valeur}")
 
-  choice = input("Zone : ")
+  choix = input("Zone : ")
 
-  if choice in zones:
-    player.zone = zones[choice]
-    print(f"\n✅ Tu es maintenant dans : {player.zone}")
+  if choix in zones:
+    joueur.zone = zones[choix]
+    print(f"\n✅ Vous êtes maintenant dans : {joueur.zone}")
+  else:
+    print("❌ Choix invalide.")
 
 
-# ===== SHOP =====
-def shop(player):
+# ===== BOUTIQUE =====
+def boutique(joueur):
   while True:
-    print("\n🏪 Welcome to the Shop!")
-    print("1. Buy Potion (20 gold)")
-    print("2. Increase Attack (+3) (50 gold)")
-    print("3. Increase Defense (+2) (50 gold)")
-    print("4. Exit Shop")
+    print("\n🏪 Bienvenue dans la boutique !")
+    print(f"Or disponible : {joueur.or_} 💰")
+    print("1. Acheter une potion (20 or)")
+    print("2. Augmenter l'attaque (+3) (50 or)")
+    print("3. Augmenter la défense (+2) (50 or)")
+    print("4. Quitter la boutique")
 
-    choice = input("What do you want to buy? ")
+    choix = input("Que voulez-vous acheter ? ")
 
-    if choice == "1":
-      if player.gold >= 20:
-        player.gold -= 20
-        player.potions += 1
-        print("You bought a potion! 🧪")
+    if choix == "1":
+      if joueur.or_ >= 20:
+        joueur.or_ -= 20
+        joueur.potions += 1
+        print("✅ Vous avez acheté une potion ! 🧪")
       else:
-        print("Not enough gold!")
+        print("❌ Pas assez d'or !")
 
-    elif choice == "2":
-      if player.gold >= 50:
-        player.gold -= 50
-        player.attack += 3
-        print("Attack increased! 🗡️")
+    elif choix == "2":
+      if joueur.or_ >= 50:
+        joueur.or_ -= 50
+        joueur.attaque += 3
+        print("✅ Attaque augmentée ! 🗡️")
       else:
-        print("Not enough gold!")
+        print("❌ Pas assez d'or !")
 
-    elif choice == "3":
-      if player.gold >= 50:
-        player.gold -= 50
-        player.defense += 2
-        print("Defense increased! 🛡️")
-      else:
-        print("Not enough gold!")
+    elif choix == "3":
+        if joueur.or_ >= 50:
+          joueur.or_ -= 50
+          joueur.defense += 2
+          print("✅ Défense augmentée ! 🛡️")
+        else:
+          print("❌ Pas assez d'or !")
 
-    elif choice == "4":
+    elif choix == "4":
       break
 
     else:
-      print("Invalid choice.")
-      
-  
-# ===== WEAPON SHOP =====     
-def weapon_shop(player):
-  weapons = [
-    {"name": "Épée en fer ⚔️", "attack_bonus": 5, "price": 50},
-    {"name": "Grande hache 🪓", "attack_bonus": 8, "price": 100},
-    {"name": "Lame légendaire 🔥", "attack_bonus": 15, "price": 250}
+      print("❌ Choix invalide.")
+
+
+# ===== BOUTIQUE D'ARMES =====
+def boutique_armes(joueur):
+  armes = [
+    {"nom": "Épée en fer ⚔️",       "bonus_attaque": 5,  "prix": 50},
+    {"nom": "Grande hache 🪓",       "bonus_attaque": 8,  "prix": 100},
+    {"nom": "Lame légendaire 🔥",    "bonus_attaque": 15, "prix": 250}
   ]
 
   print("\n🛒 Boutique d'armes :")
-  for i, weapon in enumerate(weapons):
-    print(f"{i+1}. {weapon['name']} (+{weapon['attack_bonus']} ATK) - {weapon['price']} or")
+  print(f"Or disponible : {joueur.or_} 💰")
+  for i, arme in enumerate(armes):
+    print(f"{i+1}. {arme['nom']} (+{arme['bonus_attaque']} ATK) - {arme['prix']} or")
 
-  choice = input("Choisis une arme (ou 0 pour quitter) : ")
+  choix = input("Choisissez une arme (ou 0 pour quitter) : ")
 
-  if choice.isdigit():
-    choice = int(choice)
+  if choix.isdigit():
+    choix = int(choix)
 
-    if choice == 0:
+    if choix == 0:
       return
 
-    if 1 <= choice <= len(weapons):
-      selected = weapons[choice - 1]
+    if 1 <= choix <= len(armes):
+      selection = armes[choix - 1]
 
-      if player.gold >= selected["price"]:
-          player.gold -= selected["price"]
-          player.weapon = {
-            "name": selected["name"],
-            "attack_bonus": selected["attack_bonus"]
-           }
-          print(f"\n✅ Tu as équipé {selected['name']} !")
+      if joueur.or_ >= selection["prix"]:
+        joueur.or_ -= selection["prix"]
+        joueur.arme = {
+          "nom": selection["nom"],
+          "bonus_attaque": selection["bonus_attaque"]
+              }
+        print(f"\n✅ Vous avez équipé {selection['nom']} !")
       else:
-          print("❌ Pas assez d'or.")
+        print("❌ Pas assez d'or.")
+    else:
+      print("❌ Choix invalide.")
 
 
-# ===== SAVE GAME PLAYER =====     
-def save_game(player):
-  data = {
-    "name": player.name,
-    "level": player.level,
-    "xp": player.xp,
-    "health": player.health,
-    "max_health": player.max_health,
-    "attack": player.attack,
-    "defense": player.defense,
-    "gold": player.gold,
-    "potions": player.potions,
-    "zone": player.zone,
-    "weapon": player.weapon,
-    "player_class": player.player_class
-    }
+# ===== SAUVEGARDER LA PARTIE =====
+def sauvegarder(joueur):
+  donnees = {
+    "nom": joueur.nom,
+    "classe": joueur.classe,
+    "niveau": joueur.niveau,
+    "xp": joueur.xp,
+    "sante": joueur.sante,
+    "sante_max": joueur.sante_max,
+    "attaque": joueur.attaque,
+    "defense": joueur.defense,
+    "or": joueur.or_,
+    "potions": joueur.potions,
+    "zone": joueur.zone,
+    "arme": joueur.arme,
+    "mana": joueur.mana
+  }
 
-  with open("save.json", "w") as file:
-    json.dump(data, file, indent=4)
+  with open("sauvegarde.json", "w") as fichier:
+    json.dump(donnees, fichier, indent=4, ensure_ascii=False)
 
-  print("💾 Game saved successfully!")
-  
-  
-# ===== LOAD GAME ===== 
-def load_game():
+  print("💾 Partie sauvegardée avec succès !")
+
+
+# ===== CHARGER LA PARTIE =====
+def charger_partie():
   try:
-    with open("save.json", "r") as file:
-      data = json.load(file)
+    with open("sauvegarde.json", "r") as fichier:
+      donnees = json.load(fichier)
 
-      player = Player(
-        data["name"],
-        data.get("player_class", "Guerrier")
-        )
-      player.level = data["level"]
-      player.xp = data["xp"]
-      player.health = data["health"]
-      player.max_health = data["max_health"]
-      player.attack = data["attack"]
-      player.defense = data["defense"]
-      player.gold = data["gold"]
-      player.potions = data["potions"]
-      player.zone = data["zone"]
-      player.weapon = data["weapon"]
+      joueur = Joueur(
+        donnees["nom"],
+        donnees.get("classe", "Guerrier")
+          )
+      joueur.niveau   = donnees["niveau"]
+      joueur.xp       = donnees["xp"]
+      joueur.sante    = donnees["sante"]
+      joueur.sante_max= donnees["sante_max"]
+      joueur.attaque  = donnees["attaque"]
+      joueur.defense  = donnees["defense"]
+      joueur.or_      = donnees["or"]
+      joueur.potions  = donnees["potions"]
+      joueur.zone     = donnees["zone"]
+      joueur.arme     = donnees["arme"]
+      joueur.mana     = donnees["mana"]
 
-
-      print("✅ Game loaded successfully!")
-      return player
+    print("✅ Partie chargée avec succès !")
+    return joueur
 
   except FileNotFoundError:
-    print("⚠️ No save file found.")
+    print("⚠️ Aucune sauvegarde trouvée.")
     return None
-  
+
   except json.JSONDecodeError:
-    print("⚠️ Save file corrupted.")
+    print("⚠️ Fichier de sauvegarde corrompu.")
     return None
 
 
-
-
-# ===== MENU =====
-def show_menu():
-  print("\n=== MAIN MENU ===")
-  print("1. Explore")
-  print("2. Show Player Stats")
+# ===== MENU PRINCIPAL =====
+def afficher_menu():
+  print("\n=== MENU PRINCIPAL ===")
+  print("1. Explorer")
+  print("2. Statistiques du joueur")
   print("3. Changer de zone")
-  print("4. Shop")
+  print("4. Boutique")
   print("5. Boutique d'armes")
-  print("6. Save Game")
-  print("7. Load Game")
-  print("8. Quit")
+  print("6. Sauvegarder")
+  print("7. Charger une sauvegarde")
+  print("8. Quitter")
 
 
-
-
-
-# ===== MAIN FUNCTION =====
+# ===== FONCTION PRINCIPALE =====
 def main():
-  print("Welcome to the Ultimate Adventure Game 🗡️")
+  print("Bienvenue dans l'Aventure Ultime 🗡️")
 
-  player = None
+  joueur = None
 
-  while player is None:
-    print("1. New Game")
-    print("2. Load Game")
-    start_choice = input("Choose an option: ")
+  while joueur is None:
+    print("\n1. Nouvelle partie")
+    print("2. Charger une partie")
+    choix_depart = input("Choisissez une option : ")
 
-    if start_choice == "1":
-      player_name = input("Choose your name: ")
-      print("\nChoose your class:")
+    if choix_depart == "1":
+      nom_joueur = input("Choisissez votre nom : ")
+      print("\nChoisissez votre classe :")
       print("1. Guerrier")
       print("2. Mage")
       print("3. Assassin")
 
-      class_choice = input("Class: ")
+      choix_classe = input("Classe : ")
 
-      if class_choice == "1":
-        player_class = "Guerrier"
-      elif class_choice == "2":
-        player_class = "Mage"
-      elif class_choice == "3":
-        player_class = "Assassin"
+      if choix_classe == "1":
+        classe = "Guerrier"
+      elif choix_classe == "2":
+        classe = "Mage"
+      elif choix_classe == "3":
+        classe = "Assassin"
       else:
-        print("Invalid choice, Guerrier selected by default.")
-        player_class = "Guerrier"
+        print("⚠️ Choix invalide, Guerrier sélectionné par défaut.")
+        classe = "Guerrier"
 
-      player = Player(player_name, player_class)
-    
-    elif start_choice == "2":
-      player = load_game()
+        joueur = Joueur(nom_joueur, classe)
+
+    elif choix_depart == "2":
+      joueur = charger_partie()
     else:
-      print("Invalid choice.")
+      print("❌ Choix invalide.")
 
   while True:
-    if player.health <= 0:
-      print("Game Over.")
+    if joueur.sante <= 0:
+      print("\n💀 Game Over.")
       break
 
-    show_menu()
-    choice = input("What do you want to do? ")
+    afficher_menu()
+    choix = input("Que voulez-vous faire ? ")
 
-    if choice == "1":
-      if random.random() < 0.2:   # 20% chance
-        enemy = generate_boss()
+    if choix == "1":
+      if random.random() < 0.2:  # 20% de chance de tomber sur un boss
+        ennemi = generer_boss()
       else:
-        enemy = generate_enemy(player)
-        
-      alive = combat(player, enemy)
-      if not alive:
+        ennemi = generer_ennemi(joueur)
+
+      en_vie = combat(joueur, ennemi)
+      if not en_vie:
         break
 
-    elif choice == "2":
-      player.show_stats()
-      
-    elif choice == "3":
-      change_zone(player)
+      elif choix == "2":
+        joueur.afficher_stats()
 
-    elif choice == "4":
-      shop(player)
-      
-    elif choice == "5":
-      weapon_shop(player)
+      elif choix == "3":
+        changer_zone(joueur)
 
-    elif choice == "6":
-      save_game(player)
+      elif choix == "4":
+        boutique(joueur)
 
-    elif choice == "7":
-      loaded = load_game()
-      if loaded:
-        player = loaded
+      elif choix == "5":
+        boutique_armes(joueur)
 
-    elif choice == "8":
-      print("Goodbye 👋")
-      break
+      elif choix == "6":
+        sauvegarder(joueur)
 
-    else:
-      print("Invalid choice.")
+      elif choix == "7":
+        charge = charger_partie()
+        if charge:
+          joueur = charge
 
+      elif choix == "8":
+        print("Au revoir 👋")
+        break
+
+      else:
+        print("❌ Choix invalide.")
 
 
 if __name__ == "__main__":
-    main()
+  main()
