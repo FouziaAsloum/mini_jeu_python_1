@@ -3,16 +3,36 @@ import json
 
 # ===== PLAYER CLASS =====
 class Player:
-  def __init__(self, name):
+  def __init__(self, name, player_class):
     self.name = name
-    self.health = 100
-    self.max_health = 100
-    self.attack = 15
-    self.defense = 5
-    self.gold = 0
+    self.player_class = player_class
+
+    # Stats de base
     self.level = 1
     self.xp = 0
+    self.gold = 0
     self.potions = 2
+
+    # Stats selon la classe
+    if player_class == "Guerrier":
+      self.max_health = 120
+      self.attack = 18
+      self.defense = 8
+      self.mana = 0
+
+    elif player_class == "Mage":
+      self.max_health = 80
+      self.attack = 10
+      self.defense = 3
+      self.mana = 50
+
+    elif player_class == "Assassin":
+      self.max_health = 90
+      self.attack = 15
+      self.defense = 4
+      self.mana = 20
+
+    self.health = self.max_health
     
     self.weapon = {
     "name": "Épée rouillée 🗡️",
@@ -25,6 +45,7 @@ class Player:
   def show_stats(self):
     print("\n===== PLAYER STATS =====")
     print(f"Name: {self.name}")
+    print(f"Class: {self.player_class}")
     print(f"Level: {self.level}")
     print(f"XP: {self.xp}/100")
     print(f"Health: {self.health}/{self.max_health}")
@@ -32,6 +53,8 @@ class Player:
     print(f"Defense: {self.defense}")
     print(f"Gold: {self.gold}")
     print(f"Potions: {self.potions}")
+    if self.mana > 0:
+     print(f"Mana: {self.mana}")
     print("========================\n")
 
 
@@ -56,6 +79,47 @@ class Player:
     enemy.take_damage(damage)
     
     print(f"{self.name} attacks {enemy.name} for {damage} damage!")
+    
+    
+# ----- SPECIAL ABILITY -----
+  def special_ability(self, enemy):
+    print("\n✨ SPECIAL ABILITY ✨")
+
+    # ===== warrior =====
+    if self.player_class == "Guerrier":
+      damage = (self.attack + self.weapon["attack_bonus"]) * 2
+      damage -= enemy.defense
+      damage = max(0, damage)
+
+      enemy.take_damage(damage)
+      print(f"💥 Coup Puissant ! {damage} damage dealt!")
+
+      if random.random() < 0.25:
+        print("⚡ L'ennemi est étourdi !")
+        return "stun"
+
+    # ===== wizard =====
+    elif self.player_class == "Mage":
+      if self.mana >= 20:
+        self.mana -= 20
+        damage = random.randint(25, 35)
+        enemy.take_damage(damage)
+        print(f"🔥 Boule de Feu ! {damage} damage dealt!")
+      else:
+        print("❌ Pas assez de mana !")
+
+    # ===== murderer =====
+    elif self.player_class == "Assassin":
+      damage = (self.attack + self.weapon["attack_bonus"]) * 2
+      enemy.take_damage(damage)
+      print(f"🗡 Attaque Furtive ! {damage} damage dealt!")
+
+      if random.random() < 0.3:
+        print("💨 Vous évitez la prochaine attaque !")
+        return "dodge"
+
+    return None
+ 
 
 
 # ----- USE POTION -----
@@ -154,36 +218,57 @@ def generate_enemy(player):
   )
 
   
-
-
-
+  
 # ===== BOSS GENERATOR =====
 def generate_boss():
   return Enemy("Dragon 🐉", 200, 20, 8, 150, 100)
-
 
 
 # ===== COMBAT SYSTEM =====
 def combat(player, enemy):
   print(f"\n⚔️ A wild {enemy.name} appears!")
 
+  dodge_next = False  # Pour l'assassin
+
   while enemy.health > 0 and player.health > 0:
     print(f"\n{player.name}: {player.health} HP")
     print(f"{enemy.name}: {enemy.health} HP")
 
-    action = input("1.Attack  2.Use Potion : ")
+    print("1. Attack")
+    print("2. Use Potion")
+    print("3. Special Ability")
+
+    action = input("Choose action: ")
 
     if action == "1":
       player.attack_enemy(enemy)
+
     elif action == "2":
       player.use_potion()
+
+    elif action == "3":
+      effect = player.special_ability(enemy)
+
+      if effect == "stun":
+        continue  # L’ennemi ne joue pas
+
+      if effect == "dodge":
+        dodge_next = True
+
     else:
       print("Invalid action.")
       continue
 
+    # ----- TOUR ENNEMI -----
     if enemy.health > 0:
+
+      if dodge_next:
+        print("💨 Vous esquivez l'attaque ennemie !")
+        dodge_next = False
+      else:
         enemy.attack_player(player)
 
+  # ----- FIN DU COMBAT -----
   if player.health > 0:
     print(f"\n✅ {enemy.name} defeated!")
     player.gold += enemy.gold_reward
@@ -291,7 +376,6 @@ def weapon_shop(player):
           print("❌ Pas assez d'or.")
 
 
-
 # ===== SAVE GAME PLAYER =====     
 def save_game(player):
   data = {
@@ -305,7 +389,8 @@ def save_game(player):
     "gold": player.gold,
     "potions": player.potions,
     "zone": player.zone,
-    "weapon": player.weapon
+    "weapon": player.weapon,
+    "player_class": player.player_class
     }
 
   with open("save.json", "w") as file:
@@ -320,7 +405,10 @@ def load_game():
     with open("save.json", "r") as file:
       data = json.load(file)
 
-      player = Player(data["name"])
+      player = Player(
+        data["name"],
+        data.get("player_class", "Guerrier")
+        )
       player.level = data["level"]
       player.xp = data["xp"]
       player.health = data["health"]
@@ -343,8 +431,6 @@ def load_game():
   except json.JSONDecodeError:
     print("⚠️ Save file corrupted.")
     return None
-
-
 
 
 
@@ -378,7 +464,25 @@ def main():
 
     if start_choice == "1":
       player_name = input("Choose your name: ")
-      player = Player(player_name)
+      print("\nChoose your class:")
+      print("1. Guerrier")
+      print("2. Mage")
+      print("3. Assassin")
+
+      class_choice = input("Class: ")
+
+      if class_choice == "1":
+        player_class = "Guerrier"
+      elif class_choice == "2":
+        player_class = "Mage"
+      elif class_choice == "3":
+        player_class = "Assassin"
+      else:
+        print("Invalid choice, Guerrier selected by default.")
+        player_class = "Guerrier"
+
+      player = Player(player_name, player_class)
+    
     elif start_choice == "2":
       player = load_game()
     else:
