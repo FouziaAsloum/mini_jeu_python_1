@@ -107,6 +107,17 @@ QUESTS = [
   },
 ]
 
+RANDOM_EVENTS = [
+  {"name": "💰 Treasure Chest",      "weight": 15},
+  {"name": "🧙 Mysterious Merchant", "weight": 10},
+  {"name": "⚗️ Magic Fountain",      "weight": 12},
+  {"name": "🪤 Trap",                "weight": 13},
+  {"name": "📦 Supply Crate",        "weight": 15},
+  {"name": "🌟 Blessing",            "weight": 12},
+  {"name": "👻 Ambush",              "weight": 10},
+  {"name": "⚔️ Normal Combat",       "weight": 50},
+]
+
 # ===== UI HELPERS =====
 def clear_screen():
   os.system("cls" if os.name == "nt" else "clear")
@@ -160,7 +171,7 @@ class Player:
     self.kills            = 0
     self.completed_quests = []
     self.luck             = 0.0
-
+    
     if player_class == "Warrior":
       self.max_health = 120
       self.attack     = 18
@@ -190,7 +201,7 @@ class Player:
     self.inventory = []
 
   def show_stats(self):
-    title(f"📊  STATS — {self.name}")
+    title(f"📊 STATS — {self.name}")
     print(f"  Class   : {self.player_class}")
     print(f"  Level   : {self.level}")
     print(f"  XP      : {self.xp}/{self.xp_to_next}")
@@ -357,10 +368,118 @@ def show_quests(player):
     print(f"     Reward: {quest['reward_xp']} XP + {quest['reward_gold']} Gold")
     divider()
 
+# ===== RANDOM EVENT =====
+def trigger_random_event(player, zone_name):
+  zone = ZONES[zone_name]
+  enemies = zone["enemies"]
+
+  # Pick event based on weight
+  events     = [e["name"]   for e in RANDOM_EVENTS]
+  weights    = [e["weight"] for e in RANDOM_EVENTS]
+  event_name = random.choices(events, weights=weights, k=1)[0]
+
+  clear_screen()
+  title(f"🗺️  EXPLORING {zone_name.upper()}")
+  print(f"\n  Something happens...\n")
+  time.sleep(1)
+
+  # ===== treasure chest =====
+  if event_name == "💰 Treasure Chest":
+    gold_found = random.randint(20, 100)
+    player.gold += gold_found
+    title("💰 TREASURE CHEST")
+    print(f"  You found a treasure chest!")
+    print(f"  +{gold_found} gold 💰")
+
+  # ===== mysterious merchant =====
+  elif event_name == "🧙 Mysterious Merchant":
+    title("🧙 MYSTERIOUS MERCHANT")
+    print("  A hooded merchant appears from the shadows...")
+    print("  He offers you a rare item at a discount!\n")
+
+    # Pick a random item from any category
+    all_items   = SHOP_ITEMS["weapons"] + SHOP_ITEMS["armor"] + SHOP_ITEMS["potions"]
+    rare_item   = random.choice(all_items)
+    disc_price  = max(5, rare_item["price"] // 2)
+
+    print(f"  🛒 {rare_item['name']} — {disc_price} gold (original: {rare_item['price']})")
+    print(f"\n  Your gold: {player.gold} 💰")
+    divider()
+    choice = input("  Buy? (y/n): ").strip().lower()
+
+    if choice == "y":
+        if player.gold >= disc_price:
+          player.gold -= disc_price
+          player.inventory.append(rare_item)
+          print(f"\n  ✅ {rare_item['name']} added to inventory!")
+        else:
+          print("  ❌ Not enough gold.")
+    else:
+      print("  You let the merchant disappear into the shadows...")
+
+  # ===== magic fountain =====
+  elif event_name == "⚗️ Magic Fountain":
+    title("⚗️ MAGIC FOUNTAIN")
+    heal_amount = random.randint(20, 50)
+    player.health = min(player.max_health, player.health + heal_amount)
+    print(f"  You find a glowing fountain...")
+    print(f"  You drink from it and feel restored!")
+    print(f"  +{heal_amount} HP ❤️  ({player.health}/{player.max_health})")
+
+  # ===== trap =====
+  elif event_name == "🪤 Trap":
+    title("🪤 TRAP!")
+    damage = random.randint(10, 30)
+    player.health = max(1, player.health - damage)
+    print(f"  You step on a hidden trap!")
+    print(f"  -{damage} HP 💢  ({player.health}/{player.max_health})")
+
+  # ===== supply crate =====
+  elif event_name == "📦 Supply Crate":
+    title("📦 SUPPLY CRATE")
+    potion = random.choice(SHOP_ITEMS["potions"])
+    player.inventory.append(potion)
+    print(f"  You find an abandoned crate!")
+    print(f"  +1 {potion['name']} added to inventory 🎒")
+
+  # ===== blessing =====
+  elif event_name == "🌟 Blessing":
+    title("🌟 BLESSING")
+    xp_gain = random.randint(20, 60)
+    player.gain_xp(xp_gain)
+    print(f"  A divine light surrounds you...")
+    print(f"  +{xp_gain} XP ✨")
+
+  # ===== ambush =====
+  elif event_name == "👻 Ambush":
+    title("👻 AMBUSH!")
+    print("  You've been ambushed by multiple enemies!\n")
+    time.sleep(1)
+
+    num_enemies = 2
+    for i in range(num_enemies):
+      if player.health <= 0:
+        break
+      enemy_name = random.choice(enemies)
+      t     = scale_enemy(ENEMY_TEMPLATES[enemy_name], player.level)
+      enemy = Enemy(enemy_name, t["health"], t["attack"], t["defense"], t["xp"], t["gold"])
+
+      print(f"\n  ⚔️  Enemy {i+1}: {enemy.name} appears!")
+      time.sleep(0.8)
+      combat(player, enemy)
+
+  # ===== normal combat =====
+  else:
+    trigger_random_event(player, zone_name)
+
+  divider()
+  pause()
+    
+    
 # ===== INVENTORY =====
 def show_inventory(player):
   while True:
-    title(f"🎒  INVENTORY — {player.name}")
+    title(f"🎒    INVENTORY — {player.name}")
     print(f"  🗡️  Equipped weapon : {player.weapon['name']} (+{player.weapon['bonus_attack']} ATK)")
     print(f"  🛡️  Equipped armor  : {player.armor['name']} (+{player.armor['bonus_defense']} DEF)")
     print(f"  🧪  Potions         : {player.potions}")
