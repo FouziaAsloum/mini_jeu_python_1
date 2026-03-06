@@ -37,6 +37,12 @@ SHOP_ITEMS = {
 
 # ===== COMBAT ZONES =====
 ZONES = {
+  "Village 🏘️": {
+    "required_level": 1,
+    "description": "A safe haven to shop, rest and take quests.",
+    "enemies": [],
+    "boss": None,
+  },
   "Forest 🌲": {
     "required_level": 1,
     "description": "A dark forest full of goblins and wolves.",
@@ -196,7 +202,7 @@ class Player:
 
     # Common attributes for all classes
     self.health    = self.max_health
-    self.zone      = "Forest 🌲"
+    self.zone      = "Village 🏘️"
     self.weapon    = {"name": "Rusty Sword 🗡️", "bonus_attack": 2}
     self.armor     = {"name": "Cloth Shirt 👕",  "bonus_defense": 0}
     self.inventory = []
@@ -1033,15 +1039,18 @@ def single_player_loop(player):
     choice = input("  Action: ").strip()
 
     if choice == "1":
-      is_boss = random.random() < 0.2
-      enemy   = generate_zone_boss(player) if is_boss else generate_zone_enemy(player)
-      print(f"  📍 Zone: {player.zone}")
-      result  = combat(player, enemy, is_boss=is_boss)
-      if result == "lose":
-        title("💀  GAME OVER")
-        print("  Your adventure ends here...")
-        divider()
-        break
+      if player.zone == "village":
+        print("  ❌ You can't fight in the village! Change zone first.")
+      else:
+        is_boss = random.random() < 0.2
+        enemy   = generate_zone_boss(player) if is_boss else generate_zone_enemy(player)
+        print(f"  📍 Zone: {player.zone}")
+        result  = combat(player, enemy, is_boss=is_boss)
+        if result == "lose":
+          title("💀  GAME OVER")
+          print("  Your adventure ends here...")
+          divider()
+          break
 
     elif choice == "2":
       player.show_stats()
@@ -1054,13 +1063,21 @@ def single_player_loop(player):
       show_shop(player)
 
     elif choice == "5":
-      # NPC dialogue when changing zone
       old_zone = player.zone
       show_zones(player)
       if player.zone != old_zone:
-        if player.zone == "forest":
+        if player.zone == "village":
+          print("\n📍 You return to the village...")
+          npc_dialogue(player, "village")
+        elif player.zone == "forest":
           print("\n📍 You enter the forest...")
           npc_dialogue(player, "forest")
+        elif player.zone == "desert":
+          print("\n📍 You venture into the desert...")
+          npc_dialogue(player, "desert")
+        elif player.zone == "volcano":
+          print("\n📍 You approach the volcano...")
+          npc_dialogue(player, "volcano")
         elif player.zone == "dungeon":
           print("\n📍 You descend into the dungeon...")
           npc_dialogue(player, "dungeon")
@@ -1091,18 +1108,24 @@ def multi_player_loop(player1, player2):
     choice = input("  Action: ").strip()
 
     if choice == "1":
-      is_boss = random.random() < 0.2
-      enemy   = generate_zone_boss(player1) if is_boss else generate_zone_enemy(player1)
-      print(f"  📍 Zone: {player1.zone}")
-      result  = coop_combat(player1, player2, enemy, is_boss=is_boss)
-      if result == "lose":
-        title("💀  GAME OVER")
-        print("  Both adventurers have fallen...")
-        divider()
-        break
+      if player1.zone == "village":
+        print("  ❌ You can't fight in the village! Change zone first.")
+      else:
+        is_boss = random.random() < 0.2
+        enemy   = generate_zone_boss(player1) if is_boss else generate_zone_enemy(player1)
+        print(f"  📍 Zone: {player1.zone}")
+        result  = coop_combat(player1, player2, enemy, is_boss=is_boss)
+        if result == "lose":
+          title("💀  GAME OVER")
+          print("  Both adventurers have fallen...")
+          divider()
+          break
 
     elif choice == "2":
-      pvp_combat(player1, player2)
+      if player1.zone == "village":
+        print("  ❌ You can't duel in the village! Change zone first.")
+      else:
+        pvp_combat(player1, player2)
 
     elif choice == "3":
       player1.show_stats()
@@ -1126,12 +1149,22 @@ def multi_player_loop(player1, player2):
       show_zones(player1)
       player2.zone = player1.zone
       if player1.zone != old_zone:
-        if player1.zone == "forest":
+        if player1.zone == "village":
+          print("\n📍 You return to the village...")
+          npc_dialogue(player1, "village")
+        elif player1.zone == "forest":
           print("\n📍 You enter the forest...")
           npc_dialogue(player1, "forest")
+        elif player1.zone == "desert":
+          print("\n📍 You venture into the desert...")
+          npc_dialogue(player1, "desert")
+        elif player1.zone == "volcano":
+          print("\n📍 You approach the volcano...")
+          npc_dialogue(player1, "volcano")
         elif player1.zone == "dungeon":
           print("\n📍 You descend into the dungeon...")
           npc_dialogue(player1, "dungeon")
+
 
     elif choice == "9":
       show_quests(player1)
