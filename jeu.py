@@ -206,6 +206,7 @@ class Player:
     self.weapon    = {"name": "Rusty Sword 🗡️", "bonus_attack": 2}
     self.armor     = {"name": "Cloth Shirt 👕",  "bonus_defense": 0}
     self.inventory = []
+    self.status_effects = {}
 
   def show_stats(self):
     title(f"📊 STATS — {self.name}")
@@ -242,13 +243,17 @@ class Player:
     print(f"  🧪 Used a potion! ({self.health}/{self.max_health} HP) — {self.potions} left")
 
   def attack_enemy(self, enemy):
-    # Critical hit chance based on luck
+  # Critical hit chance based on luck
     crit_chance = 0.1 + self.luck
-    is_crit     = random.random() < crit_chance
-
+    is_crit     = random.random() < crit_chance 
     damage = self.attack + self.weapon["bonus_attack"]
     damage = random.randint(int(damage * 0.8), int(damage * 1.2))
     damage = max(0, damage - enemy.defense)
+
+    # Rage bonus
+    if "rage" in self.status_effects:
+      damage = int(damage * 1.5)
+      print("  😡 Rage boost!")
 
     if is_crit:
       damage = int(damage * 1.5)
@@ -259,9 +264,14 @@ class Player:
     enemy.take_damage(damage)
 
   def special_ability(self, enemy):
+  # Rage bonus
+    rage_mult = 1.5 if "rage" in self.status_effects else 1.0
+
     if self.player_class == "Warrior":
       damage = (self.attack + self.weapon["bonus_attack"]) * 2
       damage = max(0, damage - enemy.defense)
+      damage = int(damage * rage_mult)
+      if rage_mult > 1: print("  😡 Rage boost!")
       enemy.take_damage(damage)
       print(f"  🗡️  POWER STRIKE! {self.name} hits {enemy.name} for {damage} damage!")
 
@@ -271,6 +281,8 @@ class Player:
         return
       damage = (self.attack + self.weapon["bonus_attack"]) + random.randint(15, 30)
       damage = max(0, damage - enemy.defense)
+      damage = int(damage * rage_mult)
+      if rage_mult > 1: print("  😡 Rage boost!")
       enemy.take_damage(damage)
       self.mana -= 20
       print(f"  🪄  FIREBALL! {self.name} blasts {enemy.name} for {damage} damage! (Mana: {self.mana})")
@@ -281,9 +293,12 @@ class Player:
         return
       damage = (self.attack + self.weapon["bonus_attack"]) + random.randint(10, 20)
       damage = max(0, damage - enemy.defense)
+      damage = int(damage * rage_mult)
+      if rage_mult > 1: print("  😡 Rage boost!")
       enemy.take_damage(damage)
       self.mana -= 10
       print(f"  🌑  BACKSTAB! {self.name} stabs {enemy.name} for {damage} damage! (Mana: {self.mana})")
+
 
   def gain_xp(self, amount):
     self.xp += amount
@@ -555,45 +570,41 @@ def show_inventory(player):
 # ===== SHOP =====
 def show_shop(player):
   # Dialogue based on reputation
-  rep = player["reputation"]
+  rep = player.reputation
   if rep >= 100:
-    print("\n🏪 Merchant: 'Ah, the legendary hero! Everything is for you!'")
+    print("\n  🏪 Merchant: 'Ah, the legendary hero! Everything is for you!'")
   elif rep <= -50:
-    print("\n🏪 Merchant: 'I'll sell you stuff but... stay away from me.'")
+    print("\n  🏪 Merchant: 'I'll sell you stuff but... stay away from me.'")
   else:
-    print("\n🏪 Merchant: 'Welcome! Here is my shop.'")
-
-  print("\n🛒 Shop:")
-  print("1. Potion (+30 HP) - 30 gold")
-  print("2. Reinforced Sword (+5 ATK) - 50 gold")
-  print("3. Light Armor (+5 DEF) - 50 gold")
-  print("4. Leave")
+    print("\n  🏪 Merchant: 'Welcome! Here is my shop.'")
 
   while True:
-    choice = input("\nPurchase: ")
-    if choice == "1":
-      if player["gold"] >= 30:
-        player["gold"] -= 30
-        player["hp"] = min(player["max_hp"], player["hp"] + 30)
-        print("✅ Potion used! +30 HP")
-      else:
-        print("❌ Not enough gold!")
+    title("🏪  SHOP")
+    print(f"  💰 Gold: {player.gold}")
+    divider()
+    print("  1. ⚔️  Weapons")
+    print("  2. 🛡️  Armor")
+    print("  3. 🧪  Potions")
+    print("  4. ✨  Special Items")
+    print("  0. 🚪  Leave")
+    divider()
+
+    choice = input("  Choice: ").strip()
+
+    if choice == "0":
+      print("  🏪 Merchant: 'Come back anytime!'")
+      break
+    elif choice == "1":
+      buy_item(player, "weapons")
     elif choice == "2":
-      if player["gold"] >= 50:
-        player["gold"] -= 50
-        player["attack"] += 5
-        print("✅ Reinforced Sword! +5 ATK")
-      else:
-        print("❌ Not enough gold!")
-      if player["gold"] >= 50:
-        player["gold"] -= 50
-        player["defense"] += 5
-        print("✅ Light Armor! +5 DEF")
-      else:
-        print("❌ Not enough gold!")
+      buy_item(player, "armor")
+    elif choice == "3":
+      buy_item(player, "potions")
     elif choice == "4":
-        print("🏪 Merchant: 'Come back anytime!'")
-        break
+      buy_item(player, "special")
+    else:
+      print("  ❌ Invalid choice.")
+
 
 
 def buy_item(player, category):
@@ -683,7 +694,7 @@ def get_shop_price(player, base_price):
 def show_zones(player):
   title("🗺️  ZONES")
   zone_names = list(ZONES.keys())
-
+  
   for i, (zone_name, data) in enumerate(ZONES.items(), 1):
     locked  = player.level < data["required_level"]
     status  = "🔒" if locked else "✅"
@@ -734,21 +745,20 @@ def npc_dialogue(player, location):
   }
 
   # Dialogue based on reputation
-  rep = player["reputation"]
+  rep = player.reputation 
   if rep >= 100:
-    print("\n✨ Everyone bows as you walk by...")
+    print("\n  ✨ Everyone bows as you walk by...")
   elif rep <= -50:
-    print("\n😨 People step away as you approach...")
+    print("\n  😨 People step away as you approach...")
 
   # Pick a random dialogue for the location
   if location in dialogues:
-    import random
     line = random.choice(dialogues[location])
     print(f"\n{line}")
   else:
     print("\n🧍 Stranger: 'I have nothing to say to you.'")
 
-# Dialogue based on ennemy
+# Dialogue based on enemy
 def enemy_dialogue(enemy):
   dialogues = {
     "Goblin":       "  👺 Goblin: \"Hehehe... you look tasty!\"",
@@ -766,6 +776,52 @@ def enemy_dialogue(enemy):
   line = dialogues.get(enemy.name, f"  ⚔️  {enemy.name}: \"Prepare to fight!\"")
   print(f"\n{line}")
   pause("  Press Enter to begin combat...")
+  
+# ===== STATUS EFFECT =====
+def apply_status_effects(entity):
+  effects_to_remove = []
+
+  for effect, turns in entity.status_effects.items():
+    if effect == "poison":
+      dmg = 5
+      entity.health -= dmg
+      print(f"  ☠️  {entity.name} takes {dmg} poison damage!")
+    elif effect == "burn":
+      dmg = 8
+      entity.health -= dmg
+      print(f"  🔥 {entity.name} takes {dmg} burn damage!")
+    elif effect == "freeze":
+      print(f"  🧊 {entity.name} is frozen!")
+    elif effect == "stun":
+      print(f"  ⚡ {entity.name} is stunned!")
+    elif effect == "rage":
+      print(f"  😡 {entity.name} is enraged! (+50% damage)")
+    elif effect == "shield":
+      print(f"  🛡️  {entity.name} is shielded!")
+
+    entity.status_effects[effect] -= 1
+    if entity.status_effects[effect] <= 0:
+      effects_to_remove.append(effect)
+
+  for effect in effects_to_remove:
+    del entity.status_effects[effect]
+    print(f"  ✨ {effect.capitalize()} effect wore off!")
+
+
+def apply_status(target, effect, turns, chance=0.3):
+  if random.random() < chance:
+    target.status_effects[effect] = turns
+    icons = {
+      "poison": "☠️",
+      "burn": "🔥",
+      "freeze": "🧊",
+      "stun": "⚡",
+      "rage": "😡",
+      "shield": "🛡️"
+    }
+    icon = icons.get(effect, "🔮")
+    print(f"  {icon} {target.name} is now {effect}ed for {turns} turns!")
+
 
 # ===== COMBAT =====
 def combat(player, enemy, is_boss=False):
@@ -780,34 +836,101 @@ def combat(player, enemy, is_boss=False):
   while player.health > 0 and enemy.health > 0:
     print(f"\n  {player.name} : {health_bar(player.health, player.max_health)}")
     print(f"  {enemy.name}  : {health_bar(enemy.health, enemy.max_health)}")
-    divider()
-    print("  1. ⚔️  Attack")
-    print("  2. ✨  Special Ability")
-    print("  3. 🧪  Use Potion")
-    print("  4. 🏃  Run Away")
+
+    # Afficher les effets actifs
+    if player.status_effects:
+      effects = "  ".join([f"{e}({t})" for e, t in player.status_effects.items()])
+      print(f"  🔮 Your effects: {effects}")
+    if enemy.status_effects:
+      effects = "  ".join([f"{e}({t})" for e, t in enemy.status_effects.items()])
+      print(f"  🔮 Enemy effects: {effects}")
+
     divider()
 
-    choice = input("  Action: ").strip()
+    # Appliquer les effets du joueur
+    apply_status_effects(player)
+    if player.health <= 0:
+      break
 
-    if choice == "1":
-      player.attack_enemy(enemy)
-    elif choice == "2":
-      player.special_ability(enemy)
-    elif choice == "3":
-      player.use_potion()
-    elif choice == "4":
-      if random.random() < 0.5:
-        print("  🏃 You ran away successfully!")
-        change_reputation(player, -2, "Fled from battle")
-        return "flee"
-      else:
-        print("  ❌ Couldn't escape!")
+    # Vérifier si le joueur est freeze/stun
+    if "freeze" in player.status_effects or "stun" in player.status_effects:
+      print("  ⛔ You can't act this turn!")
     else:
-      print("  ❌ Invalid choice.")
-      continue
+      print("  1. ⚔️  Attack")
+      print("  2. ✨  Special Ability")
+      print("  3. 🧪  Use Potion")
+      print("  4. 🛡️  Shield Up")
+      print("  5. 😡  Rage Mode")
+      print("  6. 🏃  Run Away")
+      divider()
+
+      choice = input("  Action: ").strip()
+
+      if choice == "1":
+        # Rage bonus if active
+        player.attack_enemy(enemy)
+        apply_status(enemy, "poison", 3, chance=0.2)
+
+      elif choice == "2":
+        player.special_ability(enemy)
+        apply_status(enemy, "burn", 2, chance=0.3)
+        apply_status(enemy, "stun", 1, chance=0.15)
+
+      elif choice == "3":
+        player.use_potion()
+
+      elif choice == "4":
+        if "shield" in player.status_effects:
+          print("  🛡️  You already have a shield!")
+        else:
+          player.status_effects["shield"] = 2
+          print("  🛡️  You raise your shield for 2 turns!")
+
+      elif choice == "5":
+        if "rage" in player.status_effects:
+          print("  😡 You're already enraged!")
+        else:
+          player.status_effects["rage"] = 3
+          print("  😡 You enter Rage Mode for 3 turns! (+50% damage)")
+
+      elif choice == "6":
+        if random.random() < 0.5:
+          print("  🏃 You ran away successfully!")
+          change_reputation(player, -2, "Fled from battle")
+          player.status_effects = {}
+          return "flee"
+        else:
+          print("  ❌ Couldn't escape!")
+      else:
+        print("  ❌ Invalid choice.")
+        continue
 
     if enemy.health > 0:
-      enemy.attack_player(player)
+      # Apply enemy effects 
+      apply_status_effects(enemy)
+      if enemy.health <= 0:
+        break
+
+      # Check if enemy is frozen/stunned
+      if "freeze" in enemy.status_effects or "stun" in enemy.status_effects:
+        print(f"  ⛔ {enemy.name} can't act this turn!")
+      else:
+        # Shield absorbs damage 
+        if "shield" in player.status_effects:
+          print(f"  🛡️  Your shield blocked {enemy.name}'s attack!")
+          del player.status_effects["shield"]
+        else:
+          enemy.attack_player(player)
+          apply_status(player, "poison", 3, chance=0.15)
+          if is_boss:
+            apply_status(player, "freeze", 1, chance=0.2)
+            apply_status(player, "burn", 2, chance=0.2)
+
+        # Boss can also enter rage
+        if is_boss and enemy.health < enemy.max_health * 0.3:
+          if "rage" not in enemy.status_effects:
+            enemy.status_effects["rage"] = 3
+            print(f"  😡 {enemy.name} enters Rage Mode!")
 
   if player.health > 0:
     print(f"\n  ✅ {enemy.name} defeated!")
@@ -818,9 +941,11 @@ def combat(player, enemy, is_boss=False):
     if is_boss:
       change_reputation(player, 10, "Defeated a boss")
     check_quests(player)
+    player.status_effects = {}
     return "win"
   else:
     print("\n  💀 You were defeated...")
+    player.status_effects = {}
     return "lose"
 
 # ===== PvP COMBAT =====
@@ -1039,7 +1164,7 @@ def single_player_loop(player):
     choice = input("  Action: ").strip()
 
     if choice == "1":
-      if player.zone == "village":
+      if player.zone == "Village 🏘️":  
         print("  ❌ You can't fight in the village! Change zone first.")
       else:
         is_boss = random.random() < 0.2
@@ -1066,19 +1191,19 @@ def single_player_loop(player):
       old_zone = player.zone
       show_zones(player)
       if player.zone != old_zone:
-        if player.zone == "village":
+        if player.zone == "Village 🏘️":   
           print("\n📍 You return to the village...")
           npc_dialogue(player, "village")
-        elif player.zone == "forest":
+        elif player.zone == "Forest 🌲":  
           print("\n📍 You enter the forest...")
           npc_dialogue(player, "forest")
-        elif player.zone == "desert":
+        elif player.zone == "Desert 🏜️":  
           print("\n📍 You venture into the desert...")
           npc_dialogue(player, "desert")
-        elif player.zone == "volcano":
+        elif player.zone == "Volcano 🌋":  
           print("\n📍 You approach the volcano...")
           npc_dialogue(player, "volcano")
-        elif player.zone == "dungeon":
+        elif player.zone == "Dungeon 🏰":  
           print("\n📍 You descend into the dungeon...")
           npc_dialogue(player, "dungeon")
 
@@ -1098,6 +1223,7 @@ def single_player_loop(player):
       print("  ❌ Invalid choice.")
 
 
+
 def multi_player_loop(player1, player2):
   # NPC dialogue at the start
   print("\n📍 You arrive in the village...")
@@ -1108,7 +1234,7 @@ def multi_player_loop(player1, player2):
     choice = input("  Action: ").strip()
 
     if choice == "1":
-      if player1.zone == "village":
+      if player1.zone == "Village 🏘️":
         print("  ❌ You can't fight in the village! Change zone first.")
       else:
         is_boss = random.random() < 0.2
@@ -1122,7 +1248,7 @@ def multi_player_loop(player1, player2):
           break
 
     elif choice == "2":
-      if player1.zone == "village":
+      if player1.zone == "Village 🏘️":
         print("  ❌ You can't duel in the village! Change zone first.")
       else:
         pvp_combat(player1, player2)
@@ -1149,22 +1275,21 @@ def multi_player_loop(player1, player2):
       show_zones(player1)
       player2.zone = player1.zone
       if player1.zone != old_zone:
-        if player1.zone == "village":
+        if player1.zone == "Village 🏘️":
           print("\n📍 You return to the village...")
           npc_dialogue(player1, "village")
-        elif player1.zone == "forest":
+        elif player1.zone == "Forest 🌲":
           print("\n📍 You enter the forest...")
           npc_dialogue(player1, "forest")
-        elif player1.zone == "desert":
+        elif player1.zone == "Desert 🏜️":
           print("\n📍 You venture into the desert...")
           npc_dialogue(player1, "desert")
-        elif player1.zone == "volcano":
+        elif player1.zone == "Volcano 🌋":
           print("\n📍 You approach the volcano...")
           npc_dialogue(player1, "volcano")
-        elif player1.zone == "dungeon":
+        elif player1.zone == "Dungeon 🏰":
           print("\n📍 You descend into the dungeon...")
           npc_dialogue(player1, "dungeon")
-
 
     elif choice == "9":
       show_quests(player1)
@@ -1181,7 +1306,6 @@ def multi_player_loop(player1, player2):
 
     else:
       print("  ❌ Invalid choice.")
-
 
 # ===== CHARACTER CREATION =====
 def create_player(player_number=1):
