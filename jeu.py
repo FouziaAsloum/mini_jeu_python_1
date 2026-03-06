@@ -171,6 +171,7 @@ class Player:
     self.kills            = 0
     self.completed_quests = []
     self.luck             = 0.0
+    self.reputation       = 0
     
     if player_class == "Warrior":
       self.max_health = 120
@@ -214,6 +215,8 @@ class Player:
     print(f"  Weapon  : {self.weapon['name']} (+{self.weapon['bonus_attack']} ATK)")
     print(f"  Armor   : {self.armor['name']} (+{self.armor['bonus_defense']} DEF)")
     print(f"  Zone    : {self.zone}")
+    rep_title = get_reputation_title(self.reputation)
+    print(f"  🎭 Reputation : {rep_title} ({self.reputation}/100)")
     if self.mana > 0:
       print(f"  Mana    : {self.mana} 💎")
     divider()
@@ -356,8 +359,10 @@ def check_quests(player):
       player.completed_quests.append(quest["id"])
       player.xp   += quest["reward_xp"]
       player.gold += quest["reward_gold"]
+      change_reputation(player, 5, "Quest completed")
       print(f"\n  🏆 QUEST COMPLETE: {quest['name']}")
       print(f"  Reward: +{quest['reward_xp']} XP, +{quest['reward_gold']} Gold")
+
 
 def show_quests(player):
   title("📋  QUESTS")
@@ -470,7 +475,8 @@ def trigger_random_event(player, zone_name):
 
   # ===== normal combat =====
   else:
-    trigger_random_event(player, zone_name)
+    enemy = generate_zone_enemy(player) 
+    combat(player, enemy)
 
   divider()
   pause()
@@ -597,11 +603,21 @@ def buy_item(player, category):
 
   item = items[int(choice) - 1]
 
-  if player.gold < item["price"]:
-    print(f"  ❌ Not enough gold! (Need {item['price']})")
+  final_price = get_shop_price(player, item["price"])
+
+  if final_price is None:
+    print("  ❌ The merchant refuses to serve you! (Too evil 😈)")
     return
 
-  player.gold -= item["price"]
+  if final_price != item["price"]:
+    print(f"  💬 Price adjusted by reputation: {item['price']} → {final_price} gold")
+
+  if player.gold < final_price:
+    print(f"  ❌ Not enough gold! (Need {final_price})")
+    return
+
+  player.gold -= final_price
+
 
   if "bonus_attack" in item:
     player.weapon = {"name": item["name"], "bonus_attack": item["bonus_attack"]}
@@ -627,6 +643,19 @@ def buy_item(player, category):
   elif "luck" in item:
     player.luck += item["luck"]
     print(f"  ✅ Lucky Charm equipped! (Luck: {player.luck:.1f})")
+
+def get_shop_price(player, base_price):
+    rep = player.reputation
+    if rep >= 51:      # Legend
+        return int(base_price * 0.8)
+    elif rep >= 11:    # Hero
+        return int(base_price * 0.9)
+    elif rep <= -51:   # Villain
+        return None    # Refused
+    elif rep <= -11:   # Outlaw
+        return int(base_price * 1.1)
+    else:
+        return base_price
 
 # ===== ZONE SYSTEM =====
 def show_zones(player):
@@ -692,6 +721,7 @@ def combat(player, enemy, is_boss=False):
     elif choice == "4":
       if random.random() < 0.5:
         print("  🏃 You ran away successfully!")
+        change_reputation(player, -2, "Fled from battle")
         return "flee"
       else:
         print("  ❌ Couldn't escape!")
@@ -708,6 +738,8 @@ def combat(player, enemy, is_boss=False):
     player.gain_xp(enemy.xp)
     player.gold += enemy.gold
     print(f"  💰 +{enemy.gold} gold!")
+    if is_boss:
+      change_reputation(player, 10, "Defeated a boss")
     check_quests(player)
     return "win"
   else:
@@ -827,6 +859,28 @@ def coop_combat(player1, player2, enemy, is_boss=False):
   else:
     print("\n  💀 Both players were defeated...")
     return "lose"
+
+# ===== REPUTATION TITLE =====
+def get_reputation_title(rep):
+    if rep <= -51:
+        return "😈 Villain"
+    elif rep <= -11:
+        return "😤 Outlaw"
+    elif rep <= 10:
+        return "😐 Neutral"
+    elif rep <= 50:
+        return "😊 Hero"
+    else:
+        return "🌟 Legend"
+
+# ===== CHANGE REPUTATION =====
+def change_reputation(player, amount, reason=""):
+    player.reputation = max(-100, min(100, player.reputation + amount))
+    if amount > 0:
+        print(f"  📈 Reputation +{amount} ({reason})")
+    else:
+        print(f"  📉 Reputation {amount} ({reason})")
+    print(f"  → {get_reputation_title(player.reputation)} ({player.reputation}/100)")
 
 # ===== SAVE / LOAD =====
 def choose_save_slot(action="save"):
