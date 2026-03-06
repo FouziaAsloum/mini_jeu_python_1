@@ -548,31 +548,47 @@ def show_inventory(player):
 
 # ===== SHOP =====
 def show_shop(player):
+  # Dialogue based on reputation
+  rep = player["reputation"]
+  if rep >= 100:
+    print("\n🏪 Merchant: 'Ah, the legendary hero! Everything is for you!'")
+  elif rep <= -50:
+    print("\n🏪 Merchant: 'I'll sell you stuff but... stay away from me.'")
+  else:
+    print("\n🏪 Merchant: 'Welcome! Here is my shop.'")
+
+  print("\n🛒 Shop:")
+  print("1. Potion (+30 HP) - 30 gold")
+  print("2. Reinforced Sword (+5 ATK) - 50 gold")
+  print("3. Light Armor (+5 DEF) - 50 gold")
+  print("4. Leave")
+
   while True:
-    title("🏪  SHOP")
-    print(f"  💰 Your Gold: {player.gold}")
-    divider()
-    print("  1. 🗡️  Weapons")
-    print("  2. 🛡️  Armor")
-    print("  3. 🧪  Potions")
-    print("  4. ✨  Special Items")
-    print("  5. 🚪  Leave Shop")
-    divider()
-
-    choice = input("  Choice: ").strip()
-
+    choice = input("\nPurchase: ")
     if choice == "1":
-      buy_item(player, "weapons")
+      if player["gold"] >= 30:
+        player["gold"] -= 30
+        player["hp"] = min(player["max_hp"], player["hp"] + 30)
+        print("✅ Potion used! +30 HP")
+      else:
+        print("❌ Not enough gold!")
     elif choice == "2":
-      buy_item(player, "armor")
-    elif choice == "3":
-      buy_item(player, "potions")
+      if player["gold"] >= 50:
+        player["gold"] -= 50
+        player["attack"] += 5
+        print("✅ Reinforced Sword! +5 ATK")
+      else:
+        print("❌ Not enough gold!")
+      if player["gold"] >= 50:
+        player["gold"] -= 50
+        player["defense"] += 5
+        print("✅ Light Armor! +5 DEF")
+      else:
+        print("❌ Not enough gold!")
     elif choice == "4":
-      buy_item(player, "special")
-    elif choice == "5":
-      break
-    else:
-      print("  ❌ Invalid choice.")
+        print("🏪 Merchant: 'Come back anytime!'")
+        break
+
 
 def buy_item(player, category):
   items = SHOP_ITEMS[category]
@@ -691,8 +707,63 @@ def show_zones(player):
   player.zone = chosen
   print(f"  🗺️  You traveled to {chosen}!")
 
+# ===== DIALOGUES =====
+def npc_dialogue(player, location):
+  dialogues = {
+    "village": [
+      "🧓 Old Man: 'Be careful out there, the forest is dangerous...'",
+      "👧 Girl: 'I heard there's treasure hidden in the dungeon!'",
+      "💂 Guard: 'Stay out of trouble, adventurer.'",
+      ],
+    "forest": [
+      "🧝 Elf: 'The deeper you go, the darker it gets...'",
+      "🍄 Mushroom Fairy: 'Lost? Follow the glowing mushrooms!'",
+      "🪓 Woodcutter: 'I saw something huge move between the trees last night.'",
+      ],
+    "dungeon": [
+      "💀 Ghost: 'Turn back... while you still can...'",
+      "⛓️ Prisoner: 'Please, get me out of here!'",
+      "🧙 Old Wizard: 'The boss ahead is weak to magic, remember that.'",
+      ],
+  }
+
+  # Dialogue based on reputation
+  rep = player["reputation"]
+  if rep >= 100:
+    print("\n✨ Everyone bows as you walk by...")
+  elif rep <= -50:
+    print("\n😨 People step away as you approach...")
+
+  # Pick a random dialogue for the location
+  if location in dialogues:
+    import random
+    line = random.choice(dialogues[location])
+    print(f"\n{line}")
+  else:
+    print("\n🧍 Stranger: 'I have nothing to say to you.'")
+
+# Dialogue based on ennemy
+def enemy_dialogue(enemy):
+  dialogues = {
+    "Goblin":       "  👺 Goblin: \"Hehehe... you look tasty!\"",
+    "Orc":          "  👹 Orc: \"CRUSH. SMASH. DESTROY!\"",
+    "Skeleton":     "  💀 Skeleton: \"YOHOHOHO\"",
+    "Dark Knight":  "  🗡️ Dark Knight: \"Your soul belongs to me.\"",
+    "Witch":        "  🧙 Witch: \"I'll turn you into a frog!\"",
+    "Dragon":       "  🐉 Dragon: \"Foolish mortal... you dare face ME?\"",
+    "Slime":        "  🟢 Slime: \"*gloops menacingly*\"",
+    "Vampire":      "  🧛 Vampire: \"I haven't fed in centuries...\"",
+    "Werewolf":     "  🐺 Werewolf: \"AWOOOO!\"",
+    "Demon Lord":   "  😈 Demon Lord: \"Let the slaughter begin.\""
+  }
+
+  line = dialogues.get(enemy.name, f"  ⚔️  {enemy.name}: \"Prepare to fight!\"")
+  print(f"\n{line}")
+  pause("  Press Enter to begin combat...")
+
 # ===== COMBAT =====
 def combat(player, enemy, is_boss=False):
+  enemy_dialogue(enemy)
   clear_screen()
   label = "👾  BOSS FIGHT" if is_boss else "⚔️   COMBAT"
   title(label)
@@ -953,6 +1024,10 @@ def show_menu_multi():
 
 # ===== GAME LOOPS =====
 def single_player_loop(player):
+  # NPC dialogue at the start
+  print("\n📍 You arrive in the village...")
+  npc_dialogue(player, "village")
+
   while player.health > 0:
     show_menu_single()
     choice = input("  Action: ").strip()
@@ -979,7 +1054,16 @@ def single_player_loop(player):
       show_shop(player)
 
     elif choice == "5":
+      # NPC dialogue when changing zone
+      old_zone = player.zone
       show_zones(player)
+      if player.zone != old_zone:
+        if player.zone == "forest":
+          print("\n📍 You enter the forest...")
+          npc_dialogue(player, "forest")
+        elif player.zone == "dungeon":
+          print("\n📍 You descend into the dungeon...")
+          npc_dialogue(player, "dungeon")
 
     elif choice == "6":
       show_quests(player)
@@ -996,7 +1080,12 @@ def single_player_loop(player):
     else:
       print("  ❌ Invalid choice.")
 
+
 def multi_player_loop(player1, player2):
+  # NPC dialogue at the start
+  print("\n📍 You arrive in the village...")
+  npc_dialogue(player1, "village")
+
   while True:
     show_menu_multi()
     choice = input("  Action: ").strip()
@@ -1033,8 +1122,16 @@ def multi_player_loop(player1, player2):
       show_shop(player2)
 
     elif choice == "8":
+      old_zone = player1.zone
       show_zones(player1)
       player2.zone = player1.zone
+      if player1.zone != old_zone:
+        if player1.zone == "forest":
+          print("\n📍 You enter the forest...")
+          npc_dialogue(player1, "forest")
+        elif player1.zone == "dungeon":
+          print("\n📍 You descend into the dungeon...")
+          npc_dialogue(player1, "dungeon")
 
     elif choice == "9":
       show_quests(player1)
@@ -1051,6 +1148,7 @@ def multi_player_loop(player1, player2):
 
     else:
       print("  ❌ Invalid choice.")
+
 
 # ===== CHARACTER CREATION =====
 def create_player(player_number=1):
@@ -1073,6 +1171,7 @@ def create_player(player_number=1):
   print(f"\n  ✅ {name} the {cls} created!")
   return player
 
+
 def setup_player(player_number=1):
   title(f"👤  PLAYER {player_number} SETUP")
   print("  1. 🆕  New Character")
@@ -1090,6 +1189,7 @@ def setup_player(player_number=1):
     print("  ⚠️  Switching to new character creation.")
 
   return create_player(player_number)
+
 
 # ===== MAIN =====
 def main():
@@ -1120,5 +1220,7 @@ def main():
     player = setup_player(1)
     single_player_loop(player)
 
+
 if __name__ == "__main__":
   main()
+
